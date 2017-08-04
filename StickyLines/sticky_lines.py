@@ -77,6 +77,9 @@ class StickyLines:
 
         self.pluginIsActive = False
         self.dockwidget = None
+        
+        #MY CODE---------------------------------------------------------------
+        self.rubberBands=[]
 
 
     # noinspection PyMethodMayBeStatic
@@ -244,9 +247,6 @@ class StickyLines:
             
             
         #MY CODE_______________________________________________________________
-        self.tempLayer=None
-        self.loadLineLayers()#chargement des couches lignes
-        
         #connections des boutons-----------------------------------------------
         self.dockwidget.loadLayersButton.clicked.connect(
                 self.loadLineLayers)
@@ -271,8 +271,19 @@ class StickyLines:
                 self.countFeatures)
             
         #connection signals Qgis-----------------------------------------------
-        #QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(self.loadLineLayers)
-        #QgsMapLayerRegistry.instance().layerWasAdded.connect(self.loadLineLayers)
+        QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(self.loadLineLayers)
+        QgsMapLayerRegistry.instance().layerWasAdded.connect(self.loadLineLayers)
+        
+        #start
+        self.message('StickyLines plugin')
+        self.message('choose a model layer, an edited layer, select your\
+                     geometries on each and stick your lines!')
+        self.message('loaded and ready to use...')
+        self.message('-------------')
+        self.loadLineLayers()#chargement des couches lignes
+        
+    def message(self,text):
+        self.dockwidget.textTerminal.append(text)
         
     def loadLineLayers(self):
         #nettoyage des combobox------------------------------------------------
@@ -290,6 +301,7 @@ class StickyLines:
                             layer,QtCore.SIGNAL("selectionChanged()"),self.countFeatures)
                 layer.selectionChanged.connect(self.countFeatures)
         self.countFeatures()
+        self.message('----layers reloaded')
         
     def countFeatures(self,qtsignal=False):
         #recup des couches-----------------------------------------------------
@@ -326,12 +338,29 @@ class StickyLines:
             QMessageBox.information(self.dockwidget,
                                     'erreur',
                                     "La couche active n'est pas une couche Lignes")
+        self.message('----active layer chosen')
             
     def refresh_layers(self):
         for layer in self.iface.mapCanvas().layers():
             layer.triggerRepaint()
     
     def showGeometries(self,geoms):
+        self.hideGeometries()
+        self.rubberBands=[]
+        for geom in geoms:
+            rubberBand=qgis.gui.QgsRubberBand(self.iface.mapCanvas(), True)
+            rubberBand.setToGeometry(geom,None)
+            rubberBand.setColor(QColor.fromRgb(255,0,130))
+            rubberBand.setWidth(4)
+            rubberBand.show()
+            self.rubberBands.append(rubberBand)
+    
+    def hideGeometries(self,qtsignal=False):
+        for rubberBand in self.rubberBands:
+            self.iface.mapCanvas().scene().removeItem(rubberBand)
+            
+    
+    def showGeometriesOLD(self,geoms):
         self.hideGeometries()
         geomType='LineString'
         #if geom.wkbType()==QGis.WKBPolygon:
@@ -354,7 +383,7 @@ class StickyLines:
                 0, qgis.core.QgsLayerTreeLayer(self.tempLayer))
         #mettre couche au dessus
     
-    def hideGeometries(self,qtsignal=False):
+    def hideGeometriesOLD(self,qtsignal=False):
         try:
             if type(self.tempLayer)==qgis.core.QgsVectorLayer:
                 QgsMapLayerRegistry.instance().removeMapLayer(self.tempLayer)
@@ -363,6 +392,133 @@ class StickyLines:
             pass
             
     def calculateGeometries(self,seulementGeometries=False):
+        self.message('------------')
+        self.message('calculating geometries...')
+        
+        geoms=[]
+        buffer=self.dockwidget.bufferSpin.value()
+        
+        #recup des couches-----------------------------------------------------
+        modelLayer=self.dockwidget.modelCombo.itemData(
+                self.dockwidget.modelCombo.currentIndex())
+        editLayer=self.dockwidget.editCombo.itemData(
+                self.dockwidget.editCombo.currentIndex())
+        
+        #recup des entites-----------------------------------------------------
+        if self.dockwidget.modelSelectedCheck.isChecked():
+            modelFeatures=modelLayer.selectedFeatures()
+        else:
+            modelFeatures=[feature for feature in modelLayer.getFeatures()]
+        if self.dockwidget.editSelectedCheck.isChecked():
+            editFeatures=editLayer.selectedFeatures()
+        else:
+            editFeatures=[feature for feature in editLayer.getFeatures()]
+        
+        if len(modelFeatures)==0 or len(editFeatures)==0:
+            QMessageBox.information(None,
+                    'annulation',
+                    "pas de lignes a traiter")
+            return
+            
+        
+        #fabrication de la trace a suivre--------------------------------------
+#        traceModel=modelFeatures[0].geometry()
+#        for modelLayer in modelFeatures:
+#            traceModel=traceModel.combine(modelLayer.geometry())
+#        if traceModel.wkbType() not in [QGis.WKBLineString] :
+#            QMessageBox.information(None,
+#                    'annulation',
+#                    "Les lignes modeles ne se touchent pas ou la geometrie"+
+#                    " \nn'est pas valide, annulation du traitement")
+#            return
+#        lineModel=traceModel.asPolyline()
+        
+        #calcul des nouvelles traces-------------------------------------------
+        for editFeature in editFeatures:
+            self.message('____feature - '+str(editFeature.id()))
+            lineEdit=editFeature.geometry().asPolyline()
+            newLine=[]
+            #liste modeles dans buffer-----------------------------------------
+            editBuffer=editFeature.geometry().buffer(buffer,-1)
+            modelsInBuffer=[model for model in modelFeatures if type(model.geometry())==qgis.core.QgsGeometry and model.geometry().intersects(editBuffer)]
+            def findClosestModel(point):
+                distance=None
+                closestModel=None
+                for model in modelsInBuffer:
+                    tupClosest=model.geometry().closestSegmentWithContext(point)
+                    modelDistance=qgis.core.QgsDistanceArea().measureLine(point, tupClosest[1])
+                    if distance==None or modelDistance<=distance:
+                        distance=modelDistance
+                        closestModel=model
+                return closestModel
+            def followModel(modelTrace):
+                if i<len(lineEdit)-1:
+                    tup3=modelTrace.closestSegmentWithContext(lineEdit[i+1])
+                    if tup[2]<=tup3[2]:
+                        liste=enumerate(modelLine)
+                        debut=tup[2]
+                        fin=tup3[2]
+                    else:
+                        liste=reversed(list(enumerate(modelLine)))
+                        debut=tup3[2]
+                        fin=tup[2]
+                    for i2,point2 in liste:
+                        tup4=editFeature.geometry().closestSegmentWithContext(point2)
+                        if i2>=debut and i2<=fin and qgis.core.QgsDistanceArea().measureLine(point2, tup4[1])<buffer:
+                            newLine.append(point2)
+                    return point2#dernier point
+            
+            for i,pointEdit in enumerate(lineEdit):
+                self.message('point '+str(pointEdit))
+                closestModel=findClosestModel(pointEdit)
+                if closestModel==None:
+                    closestModel=editFeature
+                modelTrace=closestModel.geometry()
+                modelLine=modelTrace.asPolyline()
+                tup=modelTrace.closestSegmentWithContext(pointEdit)
+                if qgis.core.QgsDistanceArea().measureLine(pointEdit, tup[1])>buffer:
+                    newLine.append(pointEdit)
+                    tup2=editFeature.geometry().closestSegmentWithContext(tup[1])
+                    if tup2[2]-1==i:
+                        followModel(modelTrace)
+                else:
+                    newLine.append(tup[1])
+                    followModel(modelTrace)
+                        
+            trace=qgis.core.QgsGeometry.fromPolyline(newLine)
+            simplifyBuffer=0.0001
+            trace=trace.simplify(simplifyBuffer)#suppression doublons et lignes en trop
+            
+            #MISE A JOUR-------------------------------------------------------
+            if seulementGeometries==False:
+                self.showGeometries(geoms=[trace])
+                reponse=QMessageBox.question(self.dockwidget,
+                                             'confirmer',
+                                             'confirmer le changement de geometrie',
+                                             QMessageBox.Yes,
+                                             QMessageBox.No)
+                self.hideGeometries()
+                if reponse==QMessageBox.Yes :
+                    editLayer.dataProvider().changeGeometryValues({editFeature.id(): trace})
+                    self.refresh_layers()
+                    QMessageBox.information(None,
+                        'succes',
+                        "Geometrie changee avec succes!")
+                else:
+                    QMessageBox.information(None,
+                        'annulation',
+                        "Traitement annule pour cette geometrie")
+            
+            #GEOMETRIES--------------------------------------------------------
+            geoms.append(trace)
+        if seulementGeometries==True:
+            self.showGeometries(geoms=geoms)
+        self.message('DONE')
+    
+    
+    
+    
+    def calculateGeometriesOld(self,seulementGeometries=False):
         
         geoms=[]
         buffer=self.dockwidget.bufferSpin.value()
@@ -422,6 +578,7 @@ class StickyLines:
                             tup3=editFeature.geometry().closestSegmentWithContext(point2)
                             if i2>=debut and i2<fin and i==tup3[2]-1 and qgis.core.QgsDistanceArea().measureLine(point2, tup3[1])<buffer:
                                 newLine.append(point2)
+                
                 tup=traceModel.closestSegmentWithContext(point)
                 if qgis.core.QgsDistanceArea().measureLine(point, tup[1])>buffer:
                     newLine.append(point)
@@ -433,6 +590,8 @@ class StickyLines:
                     followModel()
                         
             trace=qgis.core.QgsGeometry.fromPolyline(newLine)
+            simplifyBuffer=0.0001
+            trace=trace.simplify(simplifyBuffer)#suppression doublons et lignes en trop
             
             #MISE A JOUR-------------------------------------------------------
             if seulementGeometries==False:
