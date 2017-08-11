@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>507</width>
-    <height>629</height>
+    <height>655</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,6 +15,37 @@
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="7" column="0">
+     <widget class="QPushButton" name="showGeometryButton">
+      <property name="text">
+       <string>visualiser les nouvelles geometries</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <widget class="QPushButton" name="hideGeometryButton">
+      <property name="text">
+       <string>cacher la visualisation</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="1">
+     <widget class="QPushButton" name="loadLayersButton">
+      <property name="text">
+       <string>charger les couches lignes</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1">
+     <widget class="QSpinBox" name="bufferSpin">
+      <property name="maximum">
+       <number>99999999</number>
+      </property>
+      <property name="value">
+       <number>20</number>
+      </property>
+     </widget>
+    </item>
     <item row="8" column="0" colspan="2">
      <widget class="QPushButton" name="startButton">
       <property name="minimumSize">
@@ -33,76 +64,6 @@
       <property name="text">
        <string>Buffer de collage (m) :</string>
       </property>
-     </widget>
-    </item>
-    <item row="13" column="1">
-     <widget class="QPushButton" name="loadLayersButton">
-      <property name="text">
-       <string>charger les couches lignes</string>
-      </property>
-     </widget>
-    </item>
-    <item row="5" column="1">
-     <widget class="QSpinBox" name="bufferSpin">
-      <property name="maximum">
-       <number>99999999</number>
-      </property>
-      <property name="value">
-       <number>20</number>
-      </property>
-     </widget>
-    </item>
-    <item row="12" column="1">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="3" column="0" colspan="2">
-     <widget class="QGroupBox" name="modelGroupBox">
-      <property name="title">
-       <string>COUCHE MODELE :</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="0" colspan="2">
-        <widget class="QComboBox" name="modelCombo">
-         <property name="editable">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="QCheckBox" name="modelSelectedCheck">
-         <property name="text">
-          <string>entites selectionnees uniquement</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QPushButton" name="modelActiveButton">
-         <property name="text">
-          <string>couche active</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="modelCountLabel">
-         <property name="text">
-          <string>--nombre d'entites--</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
      </widget>
     </item>
     <item row="4" column="0" colspan="2">
@@ -145,17 +106,58 @@
       </layout>
      </widget>
     </item>
-    <item row="7" column="0">
-     <widget class="QPushButton" name="showGeometryButton">
-      <property name="text">
-       <string>visualiser les nouvelles geometries</string>
+    <item row="3" column="0" colspan="2">
+     <widget class="QGroupBox" name="modelGroupBox">
+      <property name="title">
+       <string>COUCHE MODELE :</string>
       </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0" colspan="2">
+        <widget class="QComboBox" name="modelCombo">
+         <property name="editable">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QCheckBox" name="modelSelectedCheck">
+         <property name="text">
+          <string>entites selectionnees uniquement</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="modelActiveButton">
+         <property name="text">
+          <string>couche active</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="modelCountLabel">
+         <property name="text">
+          <string>--nombre d'entites--</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
-    <item row="7" column="1">
-     <widget class="QPushButton" name="hideGeometryButton">
-      <property name="text">
-       <string>cacher la visualisation</string>
+    <item row="13" column="0" colspan="2">
+     <widget class="QTextBrowser" name="textTerminal">
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(230, 240, 250);color:  rgb(220, 00,250);
+font: &quot;Consolas&quot;;</string>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Consolas'; font-size:10pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
