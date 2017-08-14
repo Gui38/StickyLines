@@ -22,7 +22,7 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt4 import QtCore
-from PyQt4.QtGui import QAction, QIcon, QMessageBox, QColor
+from PyQt4.QtGui import QAction, QIcon, QMessageBox, QColor,QApplication
 # Initialize Qt resources from file resources.py
 import resources
 
@@ -236,6 +236,33 @@ class StickyLines:
             if self.dockwidget == None:
                 # Create the dockwidget (after translation) and keep reference
                 self.dockwidget = StickyLinesDockWidget()
+                #connections des boutons-----------------------------------------------
+                self.dockwidget.loadLayersButton.clicked.connect(
+                        self.loadLineLayers)
+                self.dockwidget.editActiveButton.clicked.connect(
+                        lambda: self.selectActiveLayer(self.dockwidget.editCombo))
+                self.dockwidget.modelActiveButton.clicked.connect(
+                        lambda: self.selectActiveLayer(self.dockwidget.modelCombo))
+                self.dockwidget.startButton.clicked.connect(
+                        lambda: self.calculateGeometries(False))
+                self.dockwidget.showGeometryButton.clicked.connect(
+                        lambda: self.calculateGeometries(True))
+                self.dockwidget.hideGeometryButton.clicked.connect(
+                        lambda: self.hideGeometries(True))
+                #refresh dock
+                self.dockwidget.editCombo.currentIndexChanged.connect(
+                        self.countFeatures)
+                self.dockwidget.modelCombo.currentIndexChanged.connect(
+                        self.countFeatures)
+                self.dockwidget.editSelectedCheck.clicked.connect(
+                        self.countFeatures)
+                self.dockwidget.modelSelectedCheck.clicked.connect(
+                        self.countFeatures)
+                    
+                #connection signals Qgis-----------------------------------------------
+                QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(self.loadLineLayers)
+                QgsMapLayerRegistry.instance().layerWasAdded.connect(self.loadLineLayers)
+        
 
             # connect to provide cleanup on closing of dockwidget
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
@@ -247,43 +274,17 @@ class StickyLines:
             
             
         #MY CODE_______________________________________________________________
-        #connections des boutons-----------------------------------------------
-        self.dockwidget.loadLayersButton.clicked.connect(
-                self.loadLineLayers)
-        self.dockwidget.editActiveButton.clicked.connect(
-                lambda: self.selectActiveLayer(self.dockwidget.editCombo))
-        self.dockwidget.modelActiveButton.clicked.connect(
-                lambda: self.selectActiveLayer(self.dockwidget.modelCombo))
-        self.dockwidget.startButton.clicked.connect(
-                lambda: self.calculateGeometries(False))
-        self.dockwidget.showGeometryButton.clicked.connect(
-                lambda: self.calculateGeometries(True))
-        self.dockwidget.hideGeometryButton.clicked.connect(
-                lambda: self.hideGeometries(True))
-        #refresh dock
-        self.dockwidget.editCombo.currentIndexChanged.connect(
-                self.countFeatures)
-        self.dockwidget.modelCombo.currentIndexChanged.connect(
-                self.countFeatures)
-        self.dockwidget.editSelectedCheck.clicked.connect(
-                self.countFeatures)
-        self.dockwidget.modelSelectedCheck.clicked.connect(
-                self.countFeatures)
-            
-        #connection signals Qgis-----------------------------------------------
-        QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(self.loadLineLayers)
-        QgsMapLayerRegistry.instance().layerWasAdded.connect(self.loadLineLayers)
-        
         #start
-        self.message('StickyLines plugin')
+        self.message('>>>StickyLines plugin')
         self.message('choose a model layer, an edited layer, select your\
                      geometries on each and stick your lines!')
         self.message('loaded and ready to use...')
-        self.message('-------------')
+        self.message('--------------------------')
         self.loadLineLayers()#chargement des couches lignes
         
     def message(self,text):
         self.dockwidget.textTerminal.append(text)
+        QApplication.processEvents()#dangereux!!! devrait utiliser Qthread
         
     def loadLineLayers(self):
         #nettoyage des combobox------------------------------------------------
